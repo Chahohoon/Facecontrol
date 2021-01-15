@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId "com.example.facecontrol"
-        minSdkVersion 16
+        minSdkVersion 21
         targetSdkVersion 30
         versionCode 1
         versionName "1.0"
@@ -32,6 +32,8 @@ android {
     }
 }
 
+apply plugin: 'kotlin-android-extensions'
+
 dependencies {
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
@@ -42,4 +44,10 @@ dependencies {
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
+
+    //opencv
+    implementation "org.bytedeco:javacv:1.4.1"
+    implementation "org.bytedeco.javacpp-presets:opencv:3.4.1-1.4.1:android-arm"
+
+//    implementation 'androidx.multidex:multidex:2.0.1'
 }
