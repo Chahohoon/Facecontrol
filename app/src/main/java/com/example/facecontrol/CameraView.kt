@@ -1,140 +1,53 @@
 package com.example.facecontrol
 
-import android.Manifest
-import android.app.Activity
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import androidx.appcompat.app.AppCompatActivity
+import android.hardware.Camera
 import android.os.Bundle
-import android.provider.MediaStore
-import android.view.View
-import android.widget.Toast
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import kotlinx.android.synthetic.main.activity_main.*
-import java.security.Permission
+import android.view.SurfaceHolder
+import androidx.appcompat.app.AppCompatActivity
+import kotlinx.android.synthetic.main.cameraview.*
+import java.io.IOException
 
 
-class MainActivity : AppCompatActivity(), View.OnClickListener {
+class CameraView(private var mCamera: Camera) : AppCompatActivity(), SurfaceHolder.Callback {
 
-    private val CAMERA_PEMISSION  = arrayOf(Manifest.permission.CAMERA)
-    private val STORAGE_PEMISSION  = arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-
-    val FLAG_PERM_CAMERA = 98
-    val FLAG_PERM_STORAGE = 99
-    val FALG_REQ_CAMERA = 101  //카메라 열기 
-    val FALG_REQ_GALLERY = 102 // 갤러리 열기
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.cameraview)
 
+        val holder = surfaceView.holder
+        holder.addCallback(this)
+        surfaceCreated(holder)
 
     }
 
-    override fun onClick(v: View?) {
-        when(v?.id) {
-            R.id.btn_cameraopen-> {
-                if(getPermission(CAMERA_PEMISSION)) {
-                    openCamera()
-                } else {
-                    ActivityCompat.requestPermissions(this,CAMERA_PEMISSION,FLAG_PERM_CAMERA)
-                }
-            }
+    @JvmName("surfaceCreated1")
+    fun surfaceCreated(holder: SurfaceHolder?) {
+        // The Surface has been created, acquire the camera and tell it where
+        // to draw.
+        mCamera = Camera.open()
+        mCamera.setDisplayOrientation(90)
+        try {
+            mCamera.setPreviewDisplay(holder)
+        } catch (e: IOException) {
+            mCamera.release()
+//            mCamera = null
         }
     }
 
-    //
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-
-//        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        when(requestCode){
-//            FLAG_PERM_STORAGE-> {
-//                var permissionCheckable =  true
-//                for(grant in grantResults) {
-//                    if (grant != PackageManager.PERMISSION_GRANTED) {
-//                        permissionCheckable = false
-//                        break
-//                    }
-//                }
-//                if(permissionCheckable) {
-//                    //카메라 실행
-//                }
-//            }
-            FLAG_PERM_CAMERA->{
-                var permissionCheckable =  true
-                for(grant in grantResults) {
-                    if (grant != PackageManager.PERMISSION_GRANTED) {
-                        permissionCheckable = false
-                        break
-                    }
-                }
-                if(permissionCheckable) {
-//                    openCamera()
-                    dispatchTakePictureIntent()
-                }
-            }
-        }
+    override fun surfaceCreated(holder: SurfaceHolder) {
+        TODO("Not yet implemented")
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-
-
-
-        if(resultCode == Activity.RESULT_OK) {    //확인버튼 눌렀을 때
-            when(requestCode) {
-                FALG_REQ_CAMERA-> {
-                    val bitmap = data?.extras?.get("data") as Bitmap
-                    resultImage.setImageBitmap(bitmap)
-                }
-            }
-        }
+    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+        TODO("Not yet implemented")
     }
 
-    fun openCamera() {
-        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-        startActivityForResult(intent,FALG_REQ_CAMERA)
+    override fun surfaceDestroyed(holder: SurfaceHolder) {
+        TODO("Not yet implemented")
     }
 
-    //퍼미션 체크함수
-    fun getPermission(permissions: Array<String>) : Boolean {
-        for(permission in permissions) {
-            val result = ContextCompat.checkSelfPermission(this,permission)
-            if ( result != PackageManager.PERMISSION_GRANTED) {
-                return false
-            }
-        }
-        return true
-    }
+}
 
-    private fun dispatchTakePictureIntent() {
-        Intent(MediaStore.ACTION_IMAGE_CAPTURE).also { takePictureIntent ->
-            if (takePictureIntent.resolveActivity(this.packageManager) != null) {
-                // 찍은 사진을 그림파일로 만들기
-//                val photoFile: File? =
-//                    try {
-//                        createImageFile()
-//                    } catch (ex: IOException) {
-//                        Log.d("TAG", "그림파일 만드는도중 에러생김")
-//                        null
-                    }
 
-                // 그림파일을 성공적으로 만들었다면 onActivityForResult로 보내기
-//                photoFile?.also {
-//                    val photoURI: Uri = FileProvider.getUriForFile(
-//                        this, "com.example.cameraonly.fileprovider", it
-//                    )
-//                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
-//                    startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE)
-                }
-            }
-        }
-//    }
-//}
