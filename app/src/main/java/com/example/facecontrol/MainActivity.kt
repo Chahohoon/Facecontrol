@@ -43,7 +43,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         }
     }
 
-    //
+    //카메라 권한체크
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,

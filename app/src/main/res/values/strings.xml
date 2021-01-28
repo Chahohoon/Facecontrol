@@ -1,3 +1,10 @@
 <resources>
+
     <string name="app_name">FaceControl</string>
+
+   <style name="Theme.FaceControl.NoActionBar">
+       <item name="windowActionBar">false</item>
+       <item name="windowNoTitle">true</item>
+   </style>
+
 </resources>

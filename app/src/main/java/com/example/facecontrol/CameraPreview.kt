@@ -19,6 +19,8 @@ class CameraPreview(context: Context, private val mCamera : Camera) : SurfaceVie
         addCallback(this@CameraPreview)
     }
 
+
+
     override fun surfaceCreated(holder: SurfaceHolder) {
 
     }
