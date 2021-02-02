@@ -18,9 +18,11 @@ import java.security.Permission
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {
 
-    private val CAMERA_PEMISSION  = arrayOf(Manifest.permission.CAMERA)
+    private val  CAMERA_PEMISSION = arrayOf(Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+//    private val  STORAGE_PEMISSION = arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE)
 
-    val FLAG_PERM_CAMERA = 98
+    val FLAG_PERM_STORAGE = 97 // 저장소 권한
+    val FLAG_PERM_CAMERA = 98 //카메라 권한
     val FALG_REQ_CAMERA = 101  //카메라 열기
 
 
@@ -28,12 +30,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+
     }
 
     override fun onClick(v: View?) {
-        when(v?.id) {
-            R.id.btn_cameraopen-> {
-                if(getPermission(CAMERA_PEMISSION)) {
+        when (v?.id) {
+            R.id.btn_cameraopen -> {
+                if (getPermission(CAMERA_PEMISSION)) {
                     startActivity(Intent(this, CameraView::class.java))
                 } else {
                     ActivityCompat.requestPermissions(this,CAMERA_PEMISSION,FLAG_PERM_CAMERA)
@@ -42,28 +45,42 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         }
     }
 
-    //카메라 권한체크
+    // 권한체크
     override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
+            requestCode: Int,
+            permissions: Array<out String>,
+            grantResults: IntArray
     ) {
-        when(requestCode){
+        when (requestCode) {
 
-            FLAG_PERM_CAMERA->{
-                var permissionCheckable =  true
-                for(grant in grantResults) {
+            FLAG_PERM_CAMERA -> {
+                var permissionCheckable = true
+                for (grant in grantResults) {
                     if (grant != PackageManager.PERMISSION_GRANTED) {
                         permissionCheckable = false
                         break
                     }
                 }
-                if(permissionCheckable) {
+                if (permissionCheckable) {
+                    startActivity(Intent(this, CameraView::class.java))
+                }
+            }
+
+            FLAG_PERM_STORAGE -> {
+                var permissionCheckable = true
+                for (grant in grantResults) {
+                    if (grant != PackageManager.PERMISSION_GRANTED) {
+                        permissionCheckable = false
+                        break
+                    }
+                }
+                if (permissionCheckable) {
                     startActivity(Intent(this, CameraView::class.java))
                 }
             }
         }
     }
+
 
 
     fun openCamera() {

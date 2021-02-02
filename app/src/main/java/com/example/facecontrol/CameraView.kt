@@ -55,6 +55,7 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
     private lateinit var mFile : File
     var mBackgroundThread: HandlerThread? = null
     var mBackgroundHandler: Handler? = null
+    var mForegroundHandler: Handler? = null
 
     private var mHeight: Int = 0
     private var mWidth:Int = 0
@@ -112,10 +113,7 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
                 mCameraDevice.close()
             }
 
-            override fun surfaceChanged(
-                    holder: SurfaceHolder, format: Int,
-                    width: Int, height: Int
-            ) {
+            override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
 
             }
         })
@@ -159,13 +157,6 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
             )
 
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
                 return
             }
             mCamera.openCamera(setCamera, deviceStateCallback, mBackgroundHandler)
@@ -176,24 +167,28 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
 
 
     fun getPicture() {
-        val mCamera = getSystemService(Context.CAMERA_SERVICE) as CameraManager
-        val characteristics = mCamera.getCameraCharacteristics(mCameraDevice.id)
-        var jpegSize: ArrayList<Size>
+        if(mSession != null) {
+            try {
+                mCaptureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE) //이미지 캡쳐 객체
+                mCaptureRequestBuilder.addTarget(mImageReader.surface)
+             try {
 
+            } catch (e: CameraAccessException) {
+                //
+                }
+            } catch (e: CameraAccessException) {
+//
+                }
 
-        if (mCameraDevice == null) {
-            return
         }
     }
-
-
 
     // 카메라 디바이스의 상태가 변경되면 호출되는 CallBack
     private val deviceStateCallback = object : CameraDevice.StateCallback() {
         override fun onOpened(camera: CameraDevice) {
             mCameraDevice = camera
             try{
-                mCaptureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+                mCaptureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW) //미리보기 객체
                 mCaptureRequestBuilder.addTarget(mSurfaceViewHolder.surface)
                 mCameraDevice.createCaptureSession(
                         listOf(mSurfaceViewHolder.surface,mImageReader.surface),mSessionPreviewStateCallback,mBackgroundHandler
@@ -230,7 +225,6 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
                 mSession.setRepeatingRequest(mCaptureRequestBuilder.build(),null,mBackgroundHandler)
 
             }catch (e:CameraAccessException) {
-
             }
         }
 
