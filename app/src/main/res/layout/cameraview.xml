@@ -10,7 +10,7 @@
     <LinearLayout
         android:id="@+id/linearLayout"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="100dp"
         android:orientation="vertical"
         app:layout_constraintBottom_toTopOf="@+id/surfaceContainer"
         app:layout_constraintTop_toTopOf="parent" />
@@ -18,12 +18,20 @@
     <FrameLayout
         android:id="@+id/surfaceContainer"
         android:layout_width="match_parent"
-        android:layout_height="660dp"
+        android:layout_height="630dp"
         app:layout_constraintBottom_toBottomOf="parent">
 
         <SurfaceView
-            android:id="@+id/SurfaceView"
+            android:id="@+id/surfaceView"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
+
+        <ImageButton
+            android:id="@+id/btn_Capture"
+            android:onClick="onClick"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal|bottom"
+            android:src="@android:drawable/btn_default"/>
     </FrameLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
