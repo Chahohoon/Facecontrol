@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         }
     }
 
-    // 권한체크
+    // 권한체크 (지금은 카메라 버튼을 눌렀을때 저장소, 카메라 한번에 처리)
     override fun onRequestPermissionsResult(
             requestCode: Int,
             permissions: Array<out String>,

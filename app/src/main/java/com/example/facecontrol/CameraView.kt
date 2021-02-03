@@ -12,6 +12,7 @@ import android.media.ImageReader
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
+import android.provider.MediaStore
 import android.util.DisplayMetrics
 import android.util.Log
 import android.util.Size
@@ -59,6 +60,7 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
 
     private var mHeight: Int = 0
     private var mWidth:Int = 0
+    private var mCameraID = CAMERA_BACK // 기본 후면카메라
 
     //화면 각도
     companion object
@@ -90,8 +92,25 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
 
     override fun onClick(v: View?) {
         when (v?.id) {
+            //캡쳐
             R.id.btn_Capture -> {
                 getPicture()
+            }
+            //갤러리
+            R.id.b -> {
+                getGallery()
+            }
+            //카메라 전환
+            R.id.a -> {
+                if(mCameraID == "0" ) {
+                    mCameraID = CAMERA_FRONT
+                    mCameraDevice.close()
+                    OpenCamera()
+                } else {
+                    mCameraID = CAMERA_BACK
+                    mCameraDevice.close()
+                    OpenCamera()
+                }
             }
         }
     }
@@ -129,19 +148,21 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
 
     //갤러리 열기
     fun getGallery() {
-        val open_gallery = Intent(Intent.ACTION_PICK)
-        intent.type = "image/*"
+        var open_gallery = Intent(Intent.ACTION_PICK)
+        open_gallery.type = "image/*"
+        open_gallery.action = Intent.ACTION_GET_CONTENT
+
         startActivityForResult(open_gallery, 99)
     }
 
+    //카메라 열기
     fun OpenCamera() {
 
         try {
 
 
             val mCamera = getSystemService(Context.CAMERA_SERVICE) as CameraManager
-            val setCamera = mCamera.cameraIdList[0] // default 카메라 선택    0 후면 1 전면 2 기타
-            val characteristics = mCamera.getCameraCharacteristics(setCamera) //선택한 카메라의 특징 확인
+            val characteristics = mCamera.getCameraCharacteristics(mCameraID) //선택한 카메라의 특징 확인
 
             val Map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
 
@@ -159,13 +180,13 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                 return
             }
-            mCamera.openCamera(setCamera, deviceStateCallback, mBackgroundHandler)
+            mCamera.openCamera(mCameraID, deviceStateCallback, mBackgroundHandler)
         } catch (e: CameraAccessException) {
 
         }
     }
 
-
+    //갤러리 열기
     fun getPicture() {
         if(mSession != null) {
             try {
