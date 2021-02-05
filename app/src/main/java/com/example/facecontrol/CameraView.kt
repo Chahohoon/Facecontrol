@@ -1,28 +1,33 @@
 package com.example.facecontrol
 
 import android.Manifest
+import android.R.attr
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
+import android.graphics.Matrix
+import android.hardware.Camera
 import android.hardware.camera2.*
 import android.media.ExifInterface
+import android.media.Image
 import android.media.ImageReader
+import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.os.Handler
 import android.os.HandlerThread
-import android.provider.MediaStore
-import android.util.DisplayMetrics
-import android.util.Log
-import android.util.Size
-import android.util.SparseIntArray
+import android.util.*
 import android.view.*
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import kotlinx.android.synthetic.main.cameraview.*
-import java.io.File
+import org.bytedeco.javacpp.RealSense
+import java.io.*
 
 
 /**
@@ -49,7 +54,6 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
     private lateinit var mSession: CameraCaptureSession
     private lateinit var mCaptureRequest :CaptureRequest
     private lateinit var mCaptureRequestBuilder :CaptureRequest.Builder
-
     //이미지 저장 변수
     private lateinit var mImageReader: ImageReader
     private lateinit var mSize : Size
@@ -102,7 +106,7 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
             }
             //카메라 전환
             R.id.a -> {
-                if(mCameraID == "0" ) {
+                if (mCameraID == "0") {
                     mCameraID = CAMERA_FRONT
                     mCameraDevice.close()
                     OpenCamera()
@@ -116,8 +120,9 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
     }
 
     fun initView() {
+        //해상도
         with(DisplayMetrics()) {
-            windowManager.defaultDisplay.getMetrics(this)
+            windowManager.defaultDisplay.getRealMetrics(this)
             mHeight = heightPixels
             mWidth = widthPixels
         }
@@ -159,8 +164,6 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
     fun OpenCamera() {
 
         try {
-
-
             val mCamera = getSystemService(Context.CAMERA_SERVICE) as CameraManager
             val characteristics = mCamera.getCameraCharacteristics(mCameraID) //선택한 카메라의 특징 확인
 
@@ -186,23 +189,65 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
         }
     }
 
-    //갤러리 열기
+    // 음??
     fun getPicture() {
-        if(mSession != null) {
-            try {
-                mCaptureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE) //이미지 캡쳐 객체
-                mCaptureRequestBuilder.addTarget(mImageReader.surface)
-             try {
 
-            } catch (e: CameraAccessException) {
-                //
-                }
-            } catch (e: CameraAccessException) {
-//
-                }
+        val mCamera = getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        val characteristics = mCamera.getCameraCharacteristics(mCameraID) //선택한 카메라의 특징 확인
 
+        val rotation = windowManager.defaultDisplay.rotation
+        mCaptureRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(rotation))
+
+        var file = File(Environment.getExternalStorageDirectory().toString())
+        val readerListener = object : ImageReader.OnImageAvailableListener {
+            override fun onImageAvailable(reader: ImageReader?) {
+                var image: Image? = null
+
+                try {
+                    image = mImageReader!!.acquireLatestImage()
+
+                    val buffer = image!!.planes[0].buffer
+                    val bytes = ByteArray(buffer.capacity())
+                    buffer.get(bytes)
+
+                    var output: OutputStream? = null
+                    try {
+                        output = FileOutputStream(file)
+                        output.write(bytes)
+                    } finally {
+                        output?.close()
+
+                        var uri = Uri.fromFile(file)
+                        Log.d("사진테스트", "uri 제대로 잘 바뀌었는지 확인 ${uri}")
+
+                        // 프리뷰 이미지에 set 해줄 비트맵을 만들어준다
+                        var bitmap: Bitmap = BitmapFactory.decodeFile(file.path)
+
+                        // 비트맵 사진이 90도 돌아가있는 문제를 해결하기 위해 rotate 해준다
+                        var rotateMatrix = Matrix()
+                        rotateMatrix.postRotate(90F)
+                        var rotatedBitmap: Bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, rotateMatrix, false)
+
+                        // 90도 돌아간 비트맵을 이미지뷰에 set 해준다
+//                        img_previewImage.setImageBitmap(rotatedBitmap)
+                        val setimage = Intent(this@CameraView,ImageView::class.java)
+                        setimage.putExtra("image", rotatedBitmap)
+                        startActivity(setimage)
+
+                    }
+                } catch (e:FileNotFoundException) {
+                    e.printStackTrace()
+                } catch (e:IOException) {
+                    e.printStackTrace()
+                } finally {
+                    image?.close()
+                }
+            }
         }
     }
+
+
+
 
     // 카메라 디바이스의 상태가 변경되면 호출되는 CallBack
     private val deviceStateCallback = object : CameraDevice.StateCallback() {
@@ -212,17 +257,17 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
                 mCaptureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW) //미리보기 객체
                 mCaptureRequestBuilder.addTarget(mSurfaceViewHolder.surface)
                 mCameraDevice.createCaptureSession(
-                        listOf(mSurfaceViewHolder.surface,mImageReader.surface),mSessionPreviewStateCallback,mBackgroundHandler
+                        listOf(mSurfaceViewHolder.surface, mImageReader.surface), mSessionPreviewStateCallback, mBackgroundHandler
                 )
 
 
-            } catch(e: CameraAccessException) {
-                //
+            } catch (e: CameraAccessException) {
+                e.printStackTrace()
             }
         }
 
         override fun onDisconnected(camera: CameraDevice) {
-            Log.e("연결끊김","")
+            Log.e("연결끊김", "")
             camera.close()
 
         }
@@ -243,9 +288,10 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
                         CaptureRequest.CONTROL_AF_MODE,
                         CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE
                 )
-                mSession.setRepeatingRequest(mCaptureRequestBuilder.build(),null,mBackgroundHandler)
+                mSession.setRepeatingRequest(mCaptureRequestBuilder.build(), null, mBackgroundHandler)
 
-            }catch (e:CameraAccessException) {
+            }catch (e: CameraAccessException) {
+                e.printStackTrace()
             }
         }
 
@@ -271,6 +317,8 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
     private fun updateTextureViewSize(viewWidth: Int, viewHeight: Int) {
         Log.d("ViewSize", "TextureView Width : $viewWidth TextureView Height : $viewHeight")
         surfaceView.layoutParams = FrameLayout.LayoutParams(viewWidth, viewHeight)
+
+
     }
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
@@ -282,6 +330,7 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
                     //이미지뷰.setimageURl(data?.data)
                 }
             }
+
         }
     }
 }

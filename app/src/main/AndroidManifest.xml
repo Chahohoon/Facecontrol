@@ -23,6 +23,7 @@
         </activity>
 
         <activity android:name=".CameraView"> </activity>
+        <activity android:name=".ImageView"> </activity>
 <!--            android:screenOrientation="landscape">-->
             <!-- configure this activity to use landscape orientation -->
 
