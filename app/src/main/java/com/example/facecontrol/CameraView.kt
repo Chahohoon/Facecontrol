@@ -1,33 +1,27 @@
 package com.example.facecontrol
 
 import android.Manifest
-import android.R.attr
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.ImageFormat
-import android.graphics.Matrix
-import android.hardware.Camera
+import android.graphics.*
 import android.hardware.camera2.*
 import android.media.ExifInterface
 import android.media.Image
 import android.media.ImageReader
-import android.net.Uri
-import android.os.Bundle
-import android.os.Environment
-import android.os.Handler
-import android.os.HandlerThread
+import android.media.ImageReader.OnImageAvailableListener
+import android.media.ImageReader.newInstance
+import android.os.*
 import android.util.*
 import android.view.*
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import kotlinx.android.synthetic.main.cameraview.*
-import org.bytedeco.javacpp.RealSense
 import java.io.*
+import java.nio.ByteBuffer
+import java.util.*
 
 
 /**
@@ -50,25 +44,27 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
 
     //카메라 변수
     private lateinit var mSurfaceViewHolder: SurfaceHolder
-    private lateinit var mCameraDevice: CameraDevice
-    private lateinit var mSession: CameraCaptureSession
-    private lateinit var mCaptureRequest :CaptureRequest
-    private lateinit var mCaptureRequestBuilder :CaptureRequest.Builder
+    private lateinit var mTextureView: TextureView.SurfaceTextureListener
+    private lateinit var mCameraDevice: CameraDevice // 카메라 디바이스
+    private lateinit var mSession: CameraCaptureSession  //캡쳐 세션
+    private lateinit var mCaptureRequest: CaptureRequest
+    private lateinit var mCaptureRequestBuilder: CaptureRequest.Builder
     //이미지 저장 변수
+
     private lateinit var mImageReader: ImageReader
-    private lateinit var mSize : Size
-    private lateinit var mFile : File
-    var mBackgroundThread: HandlerThread? = null
-    var mBackgroundHandler: Handler? = null
-    var mForegroundHandler: Handler? = null
+    private lateinit var mSize: Size
+    private lateinit var mFile: File
+
+    var mBackgroundThread: HandlerThread? = null  // Preview 정상적으로 동작하게 하기 위해서 사용하는 Background Thread
+    var mBackgroundHandler: Handler? = null // Background 에서 동작하는 핸들러
+    var mForegroundHandler: Handler? = null  //UI Thread에서 동작하는 핸들러
 
     private var mHeight: Int = 0
-    private var mWidth:Int = 0
+    private var mWidth: Int = 0
     private var mCameraID = CAMERA_BACK // 기본 후면카메라
 
     //화면 각도
-    companion object
-    {
+    companion object {
         const val CAMERA_BACK = "0"
         const val CAMERA_FRONT = "1"
 
@@ -134,14 +130,22 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
             }
 
             override fun surfaceDestroyed(holder: SurfaceHolder) {
-                mCameraDevice.close()
+                holder.removeCallback(this)
             }
 
             override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+                try {
+                    mImageReader = newInstance(mWidth, mHeight, ImageFormat.JPEG, 2)
+                    mImageReader.setOnImageAvailableListener(mImageCaptureListener, mBackgroundHandler)
+                    Log.i("현재사이즈 : ", surfaceView.width.toString() + "x" + surfaceView.height.toString())
 
+                } catch (e: CameraAccessException) {
+
+                }
             }
         })
     }
+
 
     fun initCameraAndPreview() {
         val handlerThread = HandlerThread("CAMERA2")
@@ -173,91 +177,72 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
                     Map!!.getOutputSizes(ImageFormat.JPEG)[0]
             setAspectRatioTextureView(largestPreviewSize.height, largestPreviewSize.width)
 
-            mImageReader = ImageReader.newInstance(
+            mImageReader = newInstance(
                     largestPreviewSize.width,
                     largestPreviewSize.height,
                     ImageFormat.JPEG,
                     7
             )
-
+            //권한체크
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                 return
             }
             mCamera.openCamera(mCameraID, deviceStateCallback, mBackgroundHandler)
+
         } catch (e: CameraAccessException) {
-
+            Log.e("opencamera","에러")
         }
     }
 
-    // 음??
-    fun getPicture() {
-
-        val mCamera = getSystemService(Context.CAMERA_SERVICE) as CameraManager
-        val characteristics = mCamera.getCameraCharacteristics(mCameraID) //선택한 카메라의 특징 확인
-
-        val rotation = windowManager.defaultDisplay.rotation
-        mCaptureRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(rotation))
-
-        var file = File(Environment.getExternalStorageDirectory().toString())
-        val readerListener = object : ImageReader.OnImageAvailableListener {
-            override fun onImageAvailable(reader: ImageReader?) {
-                var image: Image? = null
-
+    // 음?
+    fun getPicture2() {
+        if (mSession != null) {
+            try {
+                mCaptureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
+                mCaptureRequestBuilder.addTarget(mImageReader.surface)
                 try {
-                    image = mImageReader!!.acquireLatestImage()
-
-                    val buffer = image!!.planes[0].buffer
-                    val bytes = ByteArray(buffer.capacity())
-                    buffer.get(bytes)
-
-                    var output: OutputStream? = null
-                    try {
-                        output = FileOutputStream(file)
-                        output.write(bytes)
-                    } finally {
-                        output?.close()
-
-                        var uri = Uri.fromFile(file)
-                        Log.d("사진테스트", "uri 제대로 잘 바뀌었는지 확인 ${uri}")
-
-                        // 프리뷰 이미지에 set 해줄 비트맵을 만들어준다
-                        var bitmap: Bitmap = BitmapFactory.decodeFile(file.path)
-
-                        // 비트맵 사진이 90도 돌아가있는 문제를 해결하기 위해 rotate 해준다
-                        var rotateMatrix = Matrix()
-                        rotateMatrix.postRotate(90F)
-                        var rotatedBitmap: Bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, rotateMatrix, false)
-
-                        // 90도 돌아간 비트맵을 이미지뷰에 set 해준다
-//                        img_previewImage.setImageBitmap(rotatedBitmap)
-                        val setimage = Intent(this@CameraView,ImageView::class.java)
-                        setimage.putExtra("image", rotatedBitmap)
-                        startActivity(setimage)
-
-                    }
-                } catch (e:FileNotFoundException) {
-                    e.printStackTrace()
-                } catch (e:IOException) {
-                    e.printStackTrace()
-                } finally {
-                    image?.close()
+                    // 캡쳐 세션에 콜백을 Attach 하지 않았으므로 handler를 null처리할 수 있다
+                    mSession.capture(mCaptureRequestBuilder.build(), null, null)
+                } catch (e: CameraAccessException) {
+                    Log.e("CAMERA2 Picture", "Failed to file actual capture request", e)
                 }
+            } catch (e: CameraAccessException) {
+                Log.e("CAMERA2 Picture", "Failed to file actual capture request", e)
             }
+        } else {
+            Log.e("CAMERA2 Picture", "User attempted to perform a capture outside our session")
         }
+        //카메라로 부터 JPEG이미지를 받게 되면 Callback 이 호출된다
+        //여기서 JPEG 이미지를 못받아옴 2021.02.10
+        mImageReader.setOnImageAvailableListener(object : ImageReader.OnImageAvailableListener {
+            override fun onImageAvailable(reader: ImageReader?) {
+                mBackgroundHandler?.post(CapturedImageSaver(reader!!.acquireLatestImage()))
+            }
+        }, null)
     }
 
+    fun getPicture() {
+        //jpeg를 받으면 인텐트 해줘야하는곳 
+    }
 
+    val mImageCaptureListener = OnImageAvailableListener { reader ->
+        // Save the image once we get a chance
+        mBackgroundHandler!!.post(CapturedImageSaver(reader.acquireNextImage()))
+
+    }
 
 
     // 카메라 디바이스의 상태가 변경되면 호출되는 CallBack
     private val deviceStateCallback = object : CameraDevice.StateCallback() {
         override fun onOpened(camera: CameraDevice) {
             mCameraDevice = camera
-            try{
+            try {
                 mCaptureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW) //미리보기 객체
                 mCaptureRequestBuilder.addTarget(mSurfaceViewHolder.surface)
                 mCameraDevice.createCaptureSession(
-                        listOf(mSurfaceViewHolder.surface, mImageReader.surface), mSessionPreviewStateCallback, mBackgroundHandler
+                        listOf(mSurfaceViewHolder.surface, mImageReader.surface),
+                        mSessionPreviewStateCallback,
+                        mBackgroundHandler
                 )
 
 
@@ -278,26 +263,37 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
 
     }
 
-
-//    백그라운드 Thread에서 화면을 캡쳐하는 Session에 변경사항이 있을때 호출되는 Callback
+    //    백그라운드 Thread에서 화면을 캡쳐하는 Session에 변경사항이 있을때 호출되는 Callback
     private val mSessionPreviewStateCallback = object : CameraCaptureSession.StateCallback() {
         override fun onConfigured(session: CameraCaptureSession) {
             mSession = session
-            try {
-                mCaptureRequestBuilder.set(
-                        CaptureRequest.CONTROL_AF_MODE,
-                        CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE
-                )
-                mSession.setRepeatingRequest(mCaptureRequestBuilder.build(), null, mBackgroundHandler)
+            if (mSurfaceViewHolder != null) {
+                //화면에 뿌려줄 프리뷰 정보를 생성
+                try {
+                    mCaptureRequestBuilder.set(
+                            CaptureRequest.CONTROL_AF_MODE,
+                            CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE
+                    )
+                    try {
+                        mSession.setRepeatingRequest(
+                                mCaptureRequestBuilder.build(),
+                                null,
+                                null
+                        )
+                    } catch (e: CameraAccessException) {
+                        e.printStackTrace()
+                    }
+                } catch (e: CameraAccessException) {
 
-            }catch (e: CameraAccessException) {
-                e.printStackTrace()
+                }
             }
         }
 
         override fun onConfigureFailed(session: CameraCaptureSession) {
-
+            Log.e("CAMERA2", "Configuration error on device '" + mCameraDevice.getId())
         }
+
+
     }
 
     private fun setAspectRatioTextureView(ResolutionWidth: Int, ResolutionHeight: Int) {
@@ -313,6 +309,7 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
         }
 
     }
+
 
     private fun updateTextureViewSize(viewWidth: Int, viewHeight: Int) {
         Log.d("ViewSize", "TextureView Width : $viewWidth TextureView Height : $viewHeight")
@@ -331,6 +328,46 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
                 }
             }
 
+        }
+    }
+
+}
+
+internal class CapturedImageSaver(private val mCapture: Image) : Runnable {
+    override fun run() {
+        try {
+            // 파일명 지정
+            val file = File.createTempFile(
+                    "Test", ".jpg",
+                    Environment.getExternalStoragePublicDirectory(
+                            Environment.DIRECTORY_PICTURES
+                    )
+            )
+            try {
+                FileOutputStream(file).use { ostream ->
+                    Log.i(
+                            "CAMERAA2", "Retrieved image is" +
+                            (if (mCapture.format == ImageFormat.JPEG) "" else "n't") + " a JPEG"
+                    )
+                    val buffer: ByteBuffer = mCapture.planes[0].buffer
+                    Log.i(
+                            "CAMERAA2", "Captured image size: " +
+                            mCapture.width + 'x' + mCapture.height
+                    )
+                    // 이미지를 파일에 쓰기
+                    val jpeg = ByteArray(buffer.remaining())
+                    buffer.get(jpeg)
+                    ostream.write(jpeg)
+                }
+            } catch (ex: FileNotFoundException) {
+                Log.e("CAMERAA2", "Unable to open output file for writing", ex)
+            } catch (ex: IOException) {
+                Log.e("CAMERAA2", "Failed to write the image to the output file", ex)
+            }
+        } catch (ex: IOException) {
+            Log.e("CAMERAA2", "Unable to create a new output file", ex)
+        } finally {
+            mCapture.close()
         }
     }
 }
