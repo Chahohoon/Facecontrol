@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.MediaStore
@@ -19,6 +20,7 @@ import java.security.Permission
 
 class ImageView : AppCompatActivity(), View.OnClickListener {
 
+    private lateinit var ByteImage : ByteArray
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,8 +34,8 @@ class ImageView : AppCompatActivity(), View.OnClickListener {
 
     fun getImage() {
 
-        var intent = intent
-        if(intent.hasExtra("image"))
-        imageView.setImageBitmap(intent.getParcelableExtra<Bitmap>("image"))
+        ByteImage = intent.getByteArrayExtra("image")!!
+        val bitmap = BitmapFactory.decodeByteArray(ByteImage, 0, ByteImage.size)
+        imageView.setImageBitmap(bitmap)
     }
 }
