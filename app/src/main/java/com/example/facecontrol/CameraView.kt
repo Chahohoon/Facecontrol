@@ -4,22 +4,29 @@ import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
-import android.graphics.*
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageFormat
 import android.hardware.camera2.*
 import android.media.ExifInterface
 import android.media.ImageReader
 import android.media.ImageReader.newInstance
-import android.os.*
-import android.util.*
+import android.os.Bundle
+import android.os.Handler
+import android.os.HandlerThread
+import android.util.DisplayMetrics
+import android.util.Log
+import android.util.Size
+import android.util.SparseIntArray
 import android.view.*
-import android.view.View.GONE
-import android.view.View.VISIBLE
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import kotlinx.android.synthetic.main.cameraview.*
-import java.io.*
+import java.io.ByteArrayOutputStream
+import java.io.File
 
 
 /**
@@ -50,6 +57,7 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
 
     //이미지 저장 변수
     private lateinit var bImageview: Bitmap
+    private var portraitScreen = true
     private lateinit var mImageReader: ImageReader
     private lateinit var mSize: Size
     private lateinit var mFile: File
@@ -79,8 +87,8 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
         super.onCreate(savedInstanceState)
         //화면 켜짐 유지
         window.setFlags(
-                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
-                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
+            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
         )
         setContentView(R.layout.cameraview)
 
@@ -133,9 +141,17 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
                 holder.removeCallback(this)
             }
 
-            override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+            override fun surfaceChanged(
+                holder: SurfaceHolder,
+                format: Int,
+                width: Int,
+                height: Int
+            ) {
                 try {
-                    Log.i("현재사이즈 : ", surfaceView.width.toString() + "x" + surfaceView.height.toString())
+                    Log.i(
+                        "현재사이즈 : ",
+                        surfaceView.width.toString() + "x" + surfaceView.height.toString()
+                    )
 
                 } catch (e: CameraAccessException) {
 
@@ -171,7 +187,12 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
             val largestPreviewSize = Map!!.getOutputSizes(ImageFormat.JPEG)[0]
             setAspectRatioTextureView(largestPreviewSize.height, largestPreviewSize.width)
 
-            mImageReader = newInstance(largestPreviewSize.width, largestPreviewSize.height, ImageFormat.JPEG, 7)
+            mImageReader = newInstance(
+                largestPreviewSize.width,
+                largestPreviewSize.height,
+                ImageFormat.JPEG,
+                7
+            )
             mImageReader.setOnImageAvailableListener(mOnImageAvailableListener, mBackgroundHandler)
             //권한체크
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -193,9 +214,9 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
 
                 mCaptureRequestBuilder.addTarget(mSurfaceViewHolder.surface)
                 mCameraDevice.createCaptureSession(
-                        listOf(mSurfaceViewHolder.surface, mImageReader.surface),
-                        mSessionPreviewStateCallback,
-                        mBackgroundHandler
+                    listOf(mSurfaceViewHolder.surface, mImageReader.surface),
+                    mSessionPreviewStateCallback,
+                    mBackgroundHandler
                 )
             } catch (e: CameraAccessException) {
                 e.printStackTrace()
@@ -220,16 +241,20 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
             mSession = session
             try {
                 mCaptureRequestBuilder.set(
-                        CaptureRequest.CONTROL_AF_MODE,
-                        CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE
+                    CaptureRequest.CONTROL_AF_MODE,
+                    CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE
                 )
 
                 mCaptureRequestBuilder.set(
-                        CaptureRequest.CONTROL_AE_MODE,
-                        CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH
+                    CaptureRequest.CONTROL_AE_MODE,
+                    CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH
                 )
 
-                mSession.setRepeatingRequest(mCaptureRequestBuilder.build(), null, mBackgroundHandler)
+                mSession.setRepeatingRequest(
+                    mCaptureRequestBuilder.build(),
+                    null,
+                    mBackgroundHandler
+                )
                 } catch (e: CameraAccessException) {
                     e.printStackTrace()
                 }
@@ -277,12 +302,18 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
 
             mCaptureRequestBuilder.addTarget(mImageReader.surface)
 
-            mCaptureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
+            mCaptureRequestBuilder.set(
+                CaptureRequest.CONTROL_AF_MODE,
+                CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE
+            )
 
-            mCaptureRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH)
+            mCaptureRequestBuilder.set(
+                CaptureRequest.CONTROL_AE_MODE,
+                CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH
+            )
 
             var rotation = windowManager.defaultDisplay.rotation
-            mCaptureRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(rotation))
+//            mCaptureRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(rotation))
             mSession.capture(mCaptureRequestBuilder.build(), null, mBackgroundHandler)
 
         } catch (e: CameraAccessException) {
@@ -291,10 +322,13 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
     }
 
     private fun showImage(data: ByteArray) {
-//        val bitmap = BitmapFactory.decodeByteArray(data, 0, data.size)
+        val bitmap = BitmapFactory.decodeByteArray(data, 0, data.size)
+        val stream = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
+        val bytes = stream.toByteArray()
         val intent = Intent(this, ImageView::class.java)
         try {
-                intent.putExtra("image", data)
+                intent.putExtra("image", bytes)
                 startActivity(intent)
         } catch (e: CameraAccessException) {
             Log.e("CAMERA2", "캡처실패")
@@ -304,13 +338,31 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
 
     override fun onPause() {
         super.onPause()
-        mCameraDevice.close()
+        initView()
     }
 
     override fun onResume() {
         super.onResume()
         initView()
     }
+
+//가로 세로 방향 전환
+//    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+//        when (item.itemId) {
+//            R.id.rotation ->                 //your action
+//                if (portraitScreen) {
+//                    // Landscape mode
+//                    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+//                    portraitScreen = false
+//                } else {
+//                    // Portrait mode
+//                    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+//                    portraitScreen = true
+//                }
+//            else -> return super.onOptionsItemSelected(item)
+//        }
+//        return true
+//    }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
