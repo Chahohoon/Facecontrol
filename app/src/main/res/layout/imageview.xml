@@ -35,6 +35,7 @@
 
         <ImageButton
             android:id="@+id/btn3"
+            android:onClick="onClick"
             android:layout_width="100dp"
             android:layout_height="100dp"
             android:layout_marginLeft="20dp"

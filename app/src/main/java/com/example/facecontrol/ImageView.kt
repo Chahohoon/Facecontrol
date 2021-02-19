@@ -1,38 +1,26 @@
 package com.example.facecontrol
 
-import android.Manifest
-import android.app.Activity
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.drawable.Drawable
 import android.media.ExifInterface
 import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.provider.MediaStore
-import android.transition.Transition
-import android.util.Log
+import android.os.Environment
 import android.util.SparseIntArray
 import android.view.View
-import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.Toast
-import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.bumptech.glide.request.target.CustomViewTarget
-import com.bumptech.glide.request.target.SimpleTarget
-import kotlinx.android.synthetic.main.activity_main.*
+import androidx.appcompat.app.AppCompatActivity
 import kotlinx.android.synthetic.main.imageview.*
-import java.net.URL
-import java.security.Permission
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 
 
 class ImageView : AppCompatActivity(), View.OnClickListener {
+
+    val ALBUM = "facedraw"
+    var albumPath: String? = null
+    private var saveToDisk = false
 
     private lateinit var ByteImage : ByteArray
     private val ORIENTATIONS = SparseIntArray()
@@ -51,6 +39,12 @@ class ImageView : AppCompatActivity(), View.OnClickListener {
     }
 
     override fun onClick(v: View?) {
+        when(v?.id) {
+            R.id.btn3 -> {
+                saveToDisk = true
+                getAlbum()
+            }
+        }
     }
 
     fun getImage() {
@@ -72,5 +66,52 @@ class ImageView : AppCompatActivity(), View.OnClickListener {
 //            }
 //
 //        })
-}
+    }
+
+    private fun updataGallery(file: File) {
+        var contentUri = Uri.fromFile(file)
+        val mediaScanIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, contentUri)
+        applicationContext.sendBroadcast(mediaScanIntent)
+    }
+
+    private fun getAlbum() {
+        // Check for SD card storage
+        ByteImage = intent.getByteArrayExtra("image")!!
+        val status = Environment.getExternalStorageState()
+        if (status != Environment.MEDIA_MOUNTED) {
+        }
+
+        val file = File(
+                Environment.getExternalStoragePublicDirectory(
+                        Environment.DIRECTORY_DCIM), ALBUM
+        )
+        if(!file.mkdirs()) {
+            albumPath = file.absolutePath
+        } else {
+            albumPath = file.absolutePath
+        }
+        saveImage(ByteImage)
+    }
+
+    private fun saveImage(byteArray: ByteArray) {
+        var captureTime = System.currentTimeMillis().toString()
+        var pictureName = captureTime + ".JPG"
+        var file = File(albumPath, pictureName)
+        try {
+
+            // Local storage
+            var fileOutputStream = FileOutputStream(file)
+            fileOutputStream.write(byteArray)
+            fileOutputStream.close()
+
+            saveToDisk = false
+
+            updataGallery(file)
+            Toast.makeText(this,"사진이 저장되었습니다",Toast.LENGTH_LONG).show()
+
+        } catch (e: IOException) {
+            e.printStackTrace()
+        } finally {
+        }
+    }
 }

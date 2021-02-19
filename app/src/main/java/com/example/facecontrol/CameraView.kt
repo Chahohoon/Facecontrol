@@ -324,9 +324,10 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
     private fun showImage(data: ByteArray) {
         val bitmap = BitmapFactory.decodeByteArray(data, 0, data.size)
         val stream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, stream)
         val bytes = stream.toByteArray()
         val intent = Intent(this, ImageView::class.java)
+
         try {
                 intent.putExtra("image", bytes)
                 startActivity(intent)
