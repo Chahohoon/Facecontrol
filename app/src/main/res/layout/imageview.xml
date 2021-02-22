@@ -45,10 +45,12 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <ImageView
+    <com.github.chrisbanes.photoview.PhotoView
         android:id="@+id/imageView"
         android:layout_width="match_parent"
         android:layout_height= "0dp"
+        android:rotation="90"
+        android:scaleType="fitXY"
         app:layout_constraintBottom_toTopOf="@+id/b"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

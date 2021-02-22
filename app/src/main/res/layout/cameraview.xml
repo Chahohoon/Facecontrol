@@ -7,20 +7,41 @@
     android:layout_height="match_parent"
     tools:context=".CameraView">
 
+
+    <FrameLayout
+        android:id="@+id/surfaceContainer"
+        android:layout_width="match_parent"
+        android:layout_height="420dp"
+
+        app:layout_constraintTop_toTopOf="parent">
+
+        <SurfaceView
+            android:id="@+id/surfaceView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <com.github.chrisbanes.photoview.PhotoView
+            android:id="@+id/photoView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+
+    </FrameLayout>
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/linearLayout"
         android:layout_width="match_parent"
-        android:layout_height="100dp"
+        android:layout_height="300dp"
         android:orientation="vertical"
-        app:layout_constraintBottom_toTopOf="@+id/surfaceContainer"
-        app:layout_constraintTop_toTopOf="parent" >
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/surfaceContainer">
 
         <ImageButton
             android:id="@+id/a"
-            android:onClick="onClick"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginLeft="20dp"
+            android:onClick="onClick"
             android:src="@android:drawable/btn_default"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -28,34 +49,27 @@
 
         <ImageButton
             android:id="@+id/b"
-            android:onClick="onClick"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@android:drawable/btn_default"
             android:layout_marginLeft="20dp"
+            android:onClick="onClick"
+            android:src="@android:drawable/btn_default"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toEndOf="@+id/a"
             app:layout_constraintTop_toTopOf="parent" />
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <FrameLayout
-        android:id="@+id/surfaceContainer"
-        android:layout_width="match_parent"
-        android:layout_height="630dp"
-        app:layout_constraintBottom_toBottomOf="parent">
-
-        <SurfaceView
-            android:id="@+id/surfaceView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-
         <ImageButton
             android:id="@+id/btn_Capture"
-            android:onClick="onClick"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal|bottom"
-            android:src="@android:drawable/btn_default"/>
-    </FrameLayout>
+            android:onClick="onClick"
+            android:src="@android:drawable/btn_default"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="@+id/a"
+            app:layout_constraintTop_toTopOf="parent" />
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

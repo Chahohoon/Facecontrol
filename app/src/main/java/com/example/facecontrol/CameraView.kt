@@ -327,8 +327,9 @@ class CameraView: AppCompatActivity(), View.OnClickListener {
         bitmap.compress(Bitmap.CompressFormat.JPEG, 50, stream)
         val bytes = stream.toByteArray()
         val intent = Intent(this, ImageView::class.java)
-
         try {
+//            photoView.setImageBitmap(bitmap)
+//            onPause()
                 intent.putExtra("image", bytes)
                 startActivity(intent)
         } catch (e: CameraAccessException) {
